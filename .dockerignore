@@ -1,0 +1,9 @@
+.git
+docs
+web
+deploy
+*.md
+.env*
+ChantierFlow*
+*.pdf
+*.zip

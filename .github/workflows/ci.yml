@@ -1,0 +1,136 @@
+name: Kodi CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: cf_owner
+          POSTGRES_PASSWORD: cf_owner
+          POSTGRES_DB: kodi
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U cf_owner -d kodi"
+          --health-interval 2s --health-timeout 3s --health-retries 30
+      s3:
+        image: rustfs/rustfs:1.0.4
+        env:
+          RUSTFS_ACCESS_KEY: kodi
+          RUSTFS_SECRET_KEY: kodi-dev
+        ports: ["9100:9000"]
+    env:
+      TEST_DATABASE_URL: postgres://cf_owner:cf_owner@localhost:5432/kodi?sslmode=disable
+      TEST_S3_ENDPOINT: http://localhost:9100
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
+      - name: Code généré à jour
+        run: make generate-check
+      - name: Lint
+        run: make lint
+      - name: Tests (unitaires, intégration, e2e, concurrence, isolation tenant)
+        run: make test
+      - name: Build
+        run: make build
+      - name: Image Docker
+        run: docker build -t kodi-api:ci .
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+      - name: Lint
+        run: npm run lint
+      - name: Types
+        run: npm run typecheck
+      - name: Tests
+        run: npm test
+      - name: Build
+        run: npm run build
+
+  screens:
+    # Parcours réels sur 4 tailles d'écran, avec l'API, la base et le stockage.
+    runs-on: ubuntu-latest
+    env:
+      APP_ENV: development
+      HTTP_ADDR: ":8080"
+      APP_BASE_URL: http://localhost:3000
+      DATABASE_URL: postgres://cf_app:cf_app@localhost:5432/kodi?sslmode=disable
+      MIGRATE_DATABASE_URL: postgres://cf_owner:cf_owner@localhost:5432/kodi?sslmode=disable
+      S3_ENDPOINT: http://localhost:9100
+      S3_ACCESS_KEY: kodi
+      S3_SECRET_KEY: kodi-dev
+      S3_BUCKET: kodi
+      AUTH_RATE_PER_MINUTE: "600"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Base et stockage
+        run: docker compose up -d --wait postgres s3
+      - name: Migrations
+        run: go run ./cmd/kodi migrate up
+      - name: API
+        run: |
+          go build -o bin/kodi ./cmd/kodi
+          nohup bin/kodi api > api.log 2>&1 &
+      - name: PWA
+        working-directory: web
+        run: |
+          npm ci
+          npm run build
+          nohup npm start > web.log 2>&1 &
+      - name: Attendre les services
+        run: |
+          for i in $(seq 1 60); do
+            curl -sf http://localhost:8080/readyz && curl -sf -o /dev/null http://localhost:3000/connexion && exit 0
+            sleep 1
+          done
+          cat api.log web/web.log
+          exit 1
+      - name: Parcours multi-écrans
+        working-directory: web
+        run: npm run test:e2e
+
+  restore:
+    # Une sauvegarde n'existe que si sa restauration a été testée.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
+      - name: Sauvegarde et restauration sur base éphémère
+        env:
+          BACKUP_PASSPHRASE: ci-only-passphrase
+        run: make backup-test

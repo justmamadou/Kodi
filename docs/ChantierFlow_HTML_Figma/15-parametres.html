@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Paramètres — ChantierFlow</title>
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..800&amp;display=swap">
+<style>
+body{margin:0;background:#F5F5F7;font-family:Inter,system-ui,sans-serif;color:#1D1D1F}
+*{box-sizing:border-box}
+a{color:#2B59E6}a:hover{color:#1F48C8}
+.card{background:#FFFFFF;border:1px solid #E5E5EA;border-radius:12px}
+.bdg{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap}
+.ok{background:#E8F5EC;color:#1A7F45}.warn{background:#FFF1E0;color:#9A5200}.info{background:#EBF0FD;color:#1F48C8}.mut{background:#F2F2F7;color:#48484A}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:40px;padding:0 16px;border-radius:8px;font:600 14px Inter,system-ui,sans-serif;text-decoration:none;border:1px solid transparent;cursor:pointer;white-space:nowrap}
+.btn-p{background:#2B59E6;color:#FFFFFF}.btn-p:hover{background:#1F48C8;color:#FFFFFF}
+.btn-s{background:#FFFFFF;color:#1D1D1F;border-color:#D2D2D7}.btn-s:hover{background:#F2F2F7;color:#1D1D1F}
+.btn-d{background:#FFFFFF;color:#B3261E;border-color:#F5C6C2}
+.muted{color:#6E6E73}.num{font-variant-numeric:tabular-nums;white-space:nowrap}
+input,select,textarea,button{font:400 14px Inter,system-ui,sans-serif;color:#1D1D1F}
+.f{display:flex;flex-direction:column;gap:6px}
+.f label,.lg{font-size:13px;font-weight:600}
+.inp{height:40px;border:1px solid #D2D2D7;border-radius:8px;padding:0 12px;background:#FFFFFF;width:100%}
+.g2{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}
+.sub a{display:block;padding:9px 12px;border-radius:8px;font-size:14px;font-weight:600;color:#48484A;text-decoration:none}
+.sub a.on{background:#FFFFFF;color:#1D1D1F;box-shadow:inset 3px 0 0 #2B59E6}
+.sub a:hover{color:#1D1D1F}
+.sec{padding:24px;display:flex;flex-direction:column;gap:18px}
+.sec h2{margin:0;font-size:17px;font-weight:700}
+.sec .d{margin:4px 0 0;font-size:13px;color:#6E6E73}
+.row{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 0;border-bottom:1px solid #F2F2F7}
+.row:last-child{border-bottom:0}
+.rt{font-size:14px;font-weight:600}
+.rd{font-size:13px;color:#6E6E73;margin-top:2px}
+.sw{appearance:none;-webkit-appearance:none;width:44px;height:26px;border-radius:13px;background:#C7C7CC;position:relative;cursor:pointer;flex:none;margin:0}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#FFFFFF;transition:left .15s}
+.sw:checked{background:#2B59E6}
+.sw:checked::after{left:21px}
+.cat{display:flex;align-items:center;gap:12px;padding:10px 12px;border:1px solid #E5E5EA;border-radius:8px;font-size:14px}
+.chip{height:34px;padding:0 12px;border-radius:999px;border:1px solid #D2D2D7;background:#FFFFFF;font-weight:600;font-size:13px}
+.chip.on{background:#1D1D1F;border-color:#1D1D1F;color:#FFFFFF}
+
+.nv{display:flex;align-items:center;gap:10px;height:34px;padding:0 10px;border-radius:10px;color:#3A3A3C;font-size:13px;font-weight:500;text-decoration:none}
+.nv svg{color:#6E6E73;flex:none}
+.nv:hover{background:#EBEBEF;color:#1D1D1F}
+.nv.on{background:#FFFFFF;color:#1D1D1F;font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.06),0 2px 8px rgba(0,0,0,.04)}
+.nv.on svg{color:#2B59E6}
+.s2{color:#6E6E73}
+body{background:#F5F5F7;color:#1D1D1F;font-family:Inter,system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased}
+input,select,textarea,button{font-family:Inter,system-ui,-apple-system,sans-serif}
+.muted,.hint{color:#6E6E73}
+.card{border:0;border-radius:20px;box-shadow:0 1px 2px rgba(0,0,0,.03),0 8px 24px rgba(0,0,0,.04)}
+.ok{background:#E8F5EC;color:#1A7F45}.warn{background:#FFF1E0;color:#9A5200}.err{background:#FDECEA;color:#B3261E}.info{background:#EBF0FD;color:#1F48C8}.mut{background:#F2F2F7;color:#48484A}
+.btn{border-radius:999px}
+.btn-p:hover{background:#1F48C8}
+th{color:#6E6E73;font-weight:500;border-bottom-color:#E5E5EA}
+td{border-bottom-color:#F0F0F3}
+.inp,.sel{border-radius:10px}
+.tab{border-radius:999px}
+</style>
+</head>
+<body>
+<div style="display: flex; flex-wrap: wrap; min-height: 100vh">
+<aside style="flex: 1 1 200px; max-width: 100%; padding: 22px 14px; display: flex; flex-direction: column; gap: 26px">
+<div style="display: flex; align-items: center; gap: 10px; padding: 0 8px">
+<div style="width: 30px; height: 30px; border-radius: 8px; background: #1D1D1F; color: #FFC21A; display: flex; align-items: center; justify-content: center"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 18h20M4 18v-2a8 8 0 0 1 16 0v2M10 8V5h4v3"/></svg></div>
+<div style="font-size: 16px; font-weight: 700; letter-spacing: -0.02em">ChantierFlow</div>
+</div>
+<nav aria-label="Menu principal" style="display: flex; flex-direction: column; gap: 2px">
+<a href="03-tableau-de-bord.html" class="nv"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>Accueil</a>
+<a href="04-chantiers.html" class="nv"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M9 7h2M13 7h2M9 11h2M13 11h2M10 21v-4h4v4"/></svg>Chantiers</a>
+<a href="07-validation-depenses.html" class="nv"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="18" height="14" rx="2"/><path d="M3 10h18M16 15h2"/></svg>Dépenses<span style="margin-left: auto; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 10px; background: #2B59E6; color: #FFFFFF; font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center">4</span></a>
+<a href="12-materiaux.html" class="nv"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8M12 13v8"/></svg>Matériaux</a>
+<a href="13-rapports.html" class="nv"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7"/></svg>Rapports</a>
+<div class="s2" style="font-size: 12px; font-weight: 600; padding: 16px 10px 6px">Organisation</div>
+<a href="14-equipe-permissions.html" class="nv"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 7M21.5 20a6 6 0 0 0-4-5.6"/></svg>Équipe</a>
+<a href="#" class="nv"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 6h12v10H2zM14 10h4l3 3v3h-7"/><circle cx="6" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg>Fournisseurs</a>
+<a href="15-parametres.html" class="nv on" aria-current="page"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg>Paramètres</a>
+</nav>
+<div style="margin-top: auto; display: flex; align-items: center; gap: 10px; padding: 8px">
+<div style="width: 32px; height: 32px; border-radius: 50%; background: #FFC21A; color: #1D1D1F; font-weight: 700; font-size: 12px; display: flex; align-items: center; justify-content: center">MD</div>
+<div><div style="font-size: 13px; font-weight: 600">Moussa Diop</div><div class="s2" style="font-size: 12px">Diop Bâtiment</div></div>
+</div>
+</aside>
+<main style="flex: 999 1 560px; min-width: 0; padding: 28px 32px 40px; display: flex; flex-direction: column; gap: 20px">
+<div style="max-width: 1180px"><h1 style="margin: 0; font-size: 34px; font-weight: 700; letter-spacing: -0.035em">Paramètres</h1><p class="muted" style="margin: 6px 0 0; font-size: 15px">Organisation, règles de dépenses, notifications et sécurité de Diop Bâtiment SARL</p></div>
+<div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start; max-width: 1180px">
+<nav class="sub" aria-label="Sections des paramètres" style="flex: 1 1 200px; display: flex; flex-direction: column; gap: 2px">
+<a href="#org" class="on">Organisation</a><a href="#cat">Catégories de dépenses</a><a href="#val">Validation et alertes</a><a href="#notif">Notifications</a><a href="#secu">Sécurité et données</a><a href="#abo">Abonnement</a>
+</nav>
+<div style="flex: 999 1 600px; min-width: 0; display: flex; flex-direction: column; gap: 24px">
+<section id="org" class="card sec" aria-labelledby="h-org">
+<div><h2 id="h-org">Organisation</h2><p class="d">Ces informations apparaissent sur les exports PDF.</p></div>
+<div style="display: flex; align-items: center; gap: 16px">
+<div role="img" aria-label="Emplacement du logo" style="width: 64px; height: 64px; border-radius: 12px; background: #F2F2F7; border: 1px dashed #C7C7CC; display: flex; align-items: center; justify-content: center; color: #48484A; font-size: 11px; font-weight: 600">Logo</div>
+<button type="button" class="btn btn-s">Importer un logo</button><span class="muted" style="font-size: 12px">PNG ou JPG, 2 Mo max.</span>
+</div>
+<div class="g2">
+<div class="f"><label for="o1">Nom de l'entreprise</label><input id="o1" class="inp" value="Diop Bâtiment SARL"></div>
+<div class="f"><label for="o2">Téléphone</label><input id="o2" class="inp" value="+221 33 820 45 10"></div>
+<div class="f"><label for="o3">Type d'activité</label><select id="o3" class="inp"><option>Construction de villas et maisons</option></select></div>
+<div class="f"><label for="o4">Ville</label><select id="o4" class="inp"><option>Dakar</option></select></div>
+</div>
+<div class="f"><label for="o5">Adresse</label><input id="o5" class="inp" value="Sacré-Cœur 3, Villa 8812, Dakar"></div>
+<div class="g2">
+<div class="f"><label for="o6">Devise</label><select id="o6" class="inp"><option>FCFA (XOF)</option></select><span class="muted" style="font-size: 12px">Une seule devise par entreprise au MVP.</span></div>
+<div class="f"><label for="o7">Fuseau horaire</label><select id="o7" class="inp"><option>Africa/Dakar (UTC+0)</option></select></div>
+</div>
+<div style="display: flex; justify-content: flex-end"><button type="button" class="btn btn-p">Enregistrer</button></div>
+</section>
+<section id="cat" class="card sec" aria-labelledby="h-cat">
+<div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap"><div><h2 id="h-cat">Catégories de dépenses</h2><p class="d">Les catégories système restent communes à tous les chantiers pour des rapports comparables.</p></div><button type="button" class="btn btn-s">+ Ajouter une catégorie</button></div>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 8px">
+<div class="cat"><span style="flex: 1; font-weight: 600">Matériaux</span><span class="bdg mut">Système</span></div>
+<div class="cat"><span style="flex: 1; font-weight: 600">Main-d'œuvre</span><span class="bdg mut">Système</span></div>
+<div class="cat"><span style="flex: 1; font-weight: 600">Sous-traitance</span><span class="bdg mut">Système</span></div>
+<div class="cat"><span style="flex: 1; font-weight: 600">Transport</span><span class="bdg mut">Système</span></div>
+<div class="cat"><span style="flex: 1; font-weight: 600">Location d'équipements</span><span class="bdg mut">Système</span></div>
+<div class="cat"><span style="flex: 1; font-weight: 600">Divers</span><span class="bdg mut">Système</span></div>
+<div class="cat"><span style="flex: 1; font-weight: 600">Carburant</span><span class="bdg info">Personnalisée</span><button type="button" aria-label="Modifier Carburant" style="border: 0; background: transparent; cursor: pointer; color: #2B59E6; font-weight: 600">Modifier</button></div>
+</div>
+</section>
+<section id="val" class="card sec" aria-labelledby="h-val">
+<div><h2 id="h-val">Validation et alertes</h2><p class="d">Règles appliquées à tous les chantiers, ajustables chantier par chantier.</p></div>
+<div>
+<div class="row"><div><div class="rt">Validation obligatoire des dépenses</div><div class="rd">Au-dessus du seuil, la dépense attend l'approbation d'un Owner ou de Finance.</div></div><input type="checkbox" class="sw" checked="" aria-label="Validation obligatoire des dépenses"></div>
+<div class="row"><div><div class="rt">Seuil de validation</div><div class="rd">En dessous, la dépense est acceptée directement.</div></div><div style="position: relative; width: 170px"><input class="inp num" aria-label="Seuil de validation en FCFA" value="100 000" style="padding-right: 52px; text-align: right"><span class="muted" style="position: absolute; right: 12px; top: 11px; font-size: 12px; font-weight: 600">FCFA</span></div></div>
+<div class="row"><div><div class="rt">Alertes de budget exposé</div><div class="rd">Notifier quand un chantier atteint ces seuils.</div></div><div style="display: flex; gap: 6px"><button type="button" class="chip on" aria-pressed="true">80 %</button><button type="button" class="chip on" aria-pressed="true">90 %</button><button type="button" class="chip on" aria-pressed="true">100 %</button></div></div>
+<div class="row"><div><div class="rt">Écart budget / avancement</div><div class="rd">Signaler quand le budget exposé dépasse l'avancement déclaré de plus de…</div></div><select class="inp" aria-label="Écart toléré" style="width: 170px"><option>10 points</option><option>15 points</option><option>20 points</option></select></div>
+<div class="row"><div><div class="rt">Avertissement doublon</div><div class="rd">Même montant, date, fournisseur et chantier. La décision reste humaine.</div></div><input type="checkbox" class="sw" checked="" aria-label="Avertissement doublon"></div>
+<div class="row"><div><div class="rt">Rappel de rapport journalier</div><div class="rd">Un seul rappel par jour au conducteur si aucun rapport n'est publié.</div></div><select class="inp" aria-label="Heure du rappel" style="width: 170px"><option>À 18:00</option><option>À 17:00</option><option>Désactivé</option></select></div>
+</div>
+</section>
+<section id="notif" class="card sec" aria-labelledby="h-not">
+<div><h2 id="h-not">Notifications</h2><p class="d">Vos préférences personnelles, Moussa.</p></div>
+<div style="overflow-x: auto">
+<table style="border-collapse: collapse; width: 100%; font-size: 14px">
+<thead><tr><th style="text-align: left; font-size: 12px; color: #6E6E73; padding: 8px 0; border-bottom: 1px solid #E5E5EA">Événement</th><th style="font-size: 12px; color: #6E6E73; padding: 8px; border-bottom: 1px solid #E5E5EA; width: 90px">Dans l'app</th><th style="font-size: 12px; color: #6E6E73; padding: 8px; border-bottom: 1px solid #E5E5EA; width: 90px">Email</th><th style="font-size: 12px; color: #6E6E73; padding: 8px; border-bottom: 1px solid #E5E5EA; width: 110px">WhatsApp</th></tr></thead>
+<tbody>
+<tr><td style="padding: 12px 0; border-bottom: 1px solid #F2F2F7">Dépense à valider</td><td style="text-align: center; border-bottom: 1px solid #F2F2F7"><input type="checkbox" class="sw" checked="" aria-label="Dépense à valider, dans l'app"></td><td style="text-align: center; border-bottom: 1px solid #F2F2F7"><input type="checkbox" class="sw" aria-label="Dépense à valider, email"></td><td style="text-align: center; border-bottom: 1px solid #F2F2F7"><span class="bdg mut">Bientôt</span></td></tr>
+<tr><td style="padding: 12px 0; border-bottom: 1px solid #F2F2F7">Seuil de budget atteint</td><td style="text-align: center; border-bottom: 1px solid #F2F2F7"><input type="checkbox" class="sw" checked="" aria-label="Seuil de budget, dans l'app"></td><td style="text-align: center; border-bottom: 1px solid #F2F2F7"><input type="checkbox" class="sw" checked="" aria-label="Seuil de budget, email"></td><td style="text-align: center; border-bottom: 1px solid #F2F2F7"><span class="bdg mut">Bientôt</span></td></tr>
+<tr><td style="padding: 12px 0; border-bottom: 1px solid #F2F2F7">Rapport journalier manquant</td><td style="text-align: center; border-bottom: 1px solid #F2F2F7"><input type="checkbox" class="sw" checked="" aria-label="Rapport manquant, dans l'app"></td><td style="text-align: center; border-bottom: 1px solid #F2F2F7"><input type="checkbox" class="sw" aria-label="Rapport manquant, email"></td><td style="text-align: center; border-bottom: 1px solid #F2F2F7"><span class="bdg mut">Bientôt</span></td></tr>
+<tr><td style="padding: 12px 0">Synthèse hebdomadaire (lundi 8 h)</td><td style="text-align: center"><input type="checkbox" class="sw" aria-label="Synthèse hebdomadaire, dans l'app"></td><td style="text-align: center"><input type="checkbox" class="sw" checked="" aria-label="Synthèse hebdomadaire, email"></td><td style="text-align: center"><span class="bdg mut">Bientôt</span></td></tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="secu" class="card sec" aria-labelledby="h-sec">
+<div><h2 id="h-sec">Sécurité et données</h2></div>
+<div>
+<div class="row"><div><div class="rt">Mot de passe</div><div class="rd">Modifié il y a 3 mois.</div></div><button type="button" class="btn btn-s">Modifier</button></div>
+<div class="row"><div><div class="rt">Vérification en deux étapes</div><div class="rd">Code par SMS à chaque connexion sur un nouvel appareil.</div></div><input type="checkbox" class="sw" checked="" aria-label="Vérification en deux étapes"></div>
+<div class="row"><div><div class="rt">Sessions actives</div><div class="rd">Chrome · Windows, Dakar (cet appareil) · Samsung A54, il y a 2 j</div></div><button type="button" class="btn btn-s">Déconnecter les autres</button></div>
+<div class="row"><div><div class="rt">Exporter les données de l'entreprise</div><div class="rd">Chantiers, dépenses, justificatifs et rapports, au format ZIP.</div></div><button type="button" class="btn btn-s">Demander l'export</button></div>
+<div class="row"><div><div class="rt">Conservation des justificatifs</div><div class="rd">Durée avant suppression des reçus des chantiers archivés.</div></div><select class="inp" aria-label="Durée de conservation" style="width: 170px"><option>10 ans</option><option>5 ans</option></select></div>
+<div class="row"><div><div class="rt" style="color: #B3261E">Clôturer le compte</div><div class="rd">Un export complet est proposé avant toute suppression.</div></div><button type="button" class="btn btn-d">Clôturer</button></div>
+</div>
+</section>
+<section id="abo" class="card sec" aria-labelledby="h-abo">
+<div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap"><div><h2 id="h-abo">Abonnement</h2><p class="d">Facturation mensuelle par entreprise, sans coût par utilisateur.</p></div><span class="bdg ok">Actif</span></div>
+<div style="display: flex; flex-wrap: wrap; gap: 16px; align-items: center; padding: 16px; border-radius: 10px; background: #F5F5F7">
+<div style="flex: 1 1 220px"><div style="font-size: 20px; font-weight: 700">Business</div><div class="muted num" style="font-size: 14px; margin-top: 2px">25 000 FCFA / mois · prochain paiement le 01/12/2026</div></div>
+<div style="flex: 1 1 220px"><div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: 600"><span>Chantiers actifs</span><span class="num">5 / 10</span></div><div style="height: 8px; border-radius: 4px; background: #E5E5EA; margin-top: 6px"><div style="width: 50%; height: 8px; border-radius: 4px; background: #2B59E6"></div></div></div>
+<div style="display: flex; gap: 8px"><button type="button" class="btn btn-s">Factures</button><button type="button" class="btn btn-s">Changer d'offre</button></div>
+</div>
+<p class="muted" style="margin: 0; font-size: 13px">Moyen de paiement : Wave · 77 ••• •• 67</p>
+</section>
+</div>
+</div>
+</main>
+</div>
+</body>
+</html>

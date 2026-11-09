@@ -1,0 +1,15 @@
+ChantierFlow — 15 écrans MVP, design A+, en HTML pour import dans Figma
+
+Import dans Figma (plugin html.to.design) :
+1. Dans Figma, installez le plugin « html.to.design » depuis la Communauté.
+2. Ouvrez le plugin, onglet d'import de fichier HTML, et glissez un fichier .html.
+3. Largeur conseillée : 1440 px pour les écrans 01 à 07 et 12 à 15, 390 px pour les écrans mobiles 08 à 11.
+4. Le plugin crée des calques et auto-layouts éditables.
+
+Design system A+ :
+- Police : Inter (Google Fonts), titres serrés (-3 %), chiffres tabulaires.
+- Fond #F5F5F7 · cartes #FFFFFF sans bordure, rayon 20-24 px, ombre très douce.
+- Texte #1D1D1F · secondaire #6E6E73 · séparateurs #E5E5EA.
+- Action : bleu #2B59E6 (survol #1F48C8) · marque : jaune #FFC21A (logo uniquement).
+- Statuts : vert #1A8F4C / texte #1A7F45 · orange #C76A00 / texte #9A5200 · rouge #D93025 / texte #B3261E.
+- Boutons en pilule (rayon 999 px) · barre latérale fine 200 px.

@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Inscription — ChantierFlow</title>
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..800&amp;display=swap">
+<style>
+body{margin:0;background:#F5F5F7;font-family:Inter,system-ui,sans-serif;color:#1D1D1F}
+*{box-sizing:border-box}
+a{color:#2B59E6}a:hover{color:#1F48C8}
+input,select,button{font:400 15px Inter,system-ui,sans-serif;color:#1D1D1F}
+.f{display:flex;flex-direction:column;gap:6px}
+.f label{font-size:14px;font-weight:600}
+.inp{height:46px;border:1px solid #D2D2D7;border-radius:10px;padding:0 14px;background:#FFFFFF;width:100%}
+.req{color:#B3261E}
+.hint{font-size:12px;color:#6E6E73}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}
+.btn{display:flex;align-items:center;justify-content:center;height:48px;border-radius:10px;font:600 15px Inter,system-ui,sans-serif;text-decoration:none;background:#2B59E6;color:#FFFFFF}
+.btn:hover{background:#1F48C8;color:#FFFFFF}
+
+body{background:#F5F5F7;color:#1D1D1F;font-family:Inter,system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased}
+input,select,textarea,button{font-family:Inter,system-ui,-apple-system,sans-serif}
+.muted,.hint{color:#6E6E73}
+.card{border:0;border-radius:20px;box-shadow:0 1px 2px rgba(0,0,0,.03),0 8px 24px rgba(0,0,0,.04)}
+.ok{background:#E8F5EC;color:#1A7F45}.warn{background:#FFF1E0;color:#9A5200}.err{background:#FDECEA;color:#B3261E}.info{background:#EBF0FD;color:#1F48C8}.mut{background:#F2F2F7;color:#48484A}
+.btn{border-radius:999px}
+.btn-p:hover{background:#1F48C8}
+th{color:#6E6E73;font-weight:500;border-bottom-color:#E5E5EA}
+td{border-bottom-color:#F0F0F3}
+.inp,.sel{border-radius:10px}
+.tab{border-radius:999px}
+</style>
+</head>
+<body>
+<div style="min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 40px 24px 56px">
+<div style="display: flex; align-items: center; gap: 12px">
+<div style="width: 40px; height: 40px; border-radius: 10px; background: #FFC21A; color: #1D1D1F; display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 18h20M4 18v-2a8 8 0 0 1 16 0v2M10 8V5h4v3"></path></svg></div>
+<div style="font-size: 20px; font-weight: 700">Chantier<span style="color: #B07F00">Flow</span></div>
+</div>
+<form style="width: 100%; max-width: 720px; margin-top: 28px; background: #FFFFFF; border: 1px solid #E5E5EA; border-radius: 16px; padding: 36px; display: flex; flex-direction: column; gap: 28px">
+<div>
+<h1 style="margin: 0; font-size: 28px; font-weight: 700; letter-spacing: -0.02em">Créer votre espace entreprise</h1>
+<p style="margin: 8px 0 0; font-size: 15px; color: #6E6E73">Vous deviendrez administrateur de l'organisation et pourrez inviter vos équipes ensuite.</p>
+</div>
+<fieldset style="border: 0; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 16px">
+<legend style="display: flex; align-items: center; gap: 10px; font-size: 16px; font-weight: 700; margin-bottom: 16px"><span style="width: 26px; height: 26px; border-radius: 50%; background: #1D1D1F; color: #FFFFFF; font-size: 13px; display: inline-flex; align-items: center; justify-content: center">1</span>Votre compte</legend>
+<div class="grid2">
+<div class="f"><label for="nm">Nom et prénom <span class="req">*</span></label><input id="nm" class="inp" value="Moussa Diop" autocomplete="name"></div>
+<div class="f"><label for="tel">Téléphone <span class="req">*</span></label><div style="display: flex; gap: 8px"><span style="height: 46px; padding: 0 12px; border: 1px solid #D2D2D7; border-radius: 10px; display: flex; align-items: center; font-weight: 600; background: #F5F5F7">+221</span><input id="tel" class="inp" value="77 123 45 67" autocomplete="tel"></div></div>
+</div>
+<div class="f"><label for="em">Email professionnel <span class="req">*</span></label><input id="em" type="email" class="inp" value="moussa.diop@diopbatiment.sn" autocomplete="email"><span class="hint">Une adresse Gmail ou Yahoo est acceptée.</span></div>
+<div class="f"><label for="pw">Mot de passe <span class="req">*</span></label><input id="pw" type="password" class="inp" value="••••••••••••" autocomplete="new-password">
+<div style="display: flex; gap: 6px; margin-top: 4px" aria-hidden="true"><span style="flex: 1; height: 4px; border-radius: 2px; background: #1A8F4C"></span><span style="flex: 1; height: 4px; border-radius: 2px; background: #1A8F4C"></span><span style="flex: 1; height: 4px; border-radius: 2px; background: #1A8F4C"></span><span style="flex: 1; height: 4px; border-radius: 2px; background: #E5E5EA"></span></div>
+<span class="hint">Robuste · 10 caractères minimum, dont un chiffre.</span></div>
+</fieldset>
+<div style="height: 1px; background: #E5E5EA"></div>
+<fieldset style="border: 0; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 16px">
+<legend style="display: flex; align-items: center; gap: 10px; font-size: 16px; font-weight: 700; margin-bottom: 16px"><span style="width: 26px; height: 26px; border-radius: 50%; background: #1D1D1F; color: #FFFFFF; font-size: 13px; display: inline-flex; align-items: center; justify-content: center">2</span>Votre entreprise</legend>
+<div class="grid2">
+<div class="f"><label for="ent">Nom de l'entreprise <span class="req">*</span></label><input id="ent" class="inp" value="Diop Bâtiment SARL"></div>
+<div class="f"><label for="tel2">Téléphone de l'entreprise</label><input id="tel2" class="inp" value="+221 33 820 45 10"></div>
+</div>
+<div class="grid2">
+<div class="f"><label for="act">Type d'activité BTP <span class="req">*</span></label><select id="act" class="inp"><option>Construction de villas et maisons</option><option>Gros œuvre</option><option>Second œuvre</option><option>Rénovation et aménagement</option><option>Tous corps d'état</option></select></div>
+<div class="f"><label for="vil">Ville <span class="req">*</span></label><select id="vil" class="inp"><option>Dakar</option><option>Rufisque</option><option>Thiès</option><option>Mbour / Saly</option><option>Autre</option></select></div>
+</div>
+<div class="f"><label for="adr">Adresse</label><input id="adr" class="inp" value="Sacré-Cœur 3, Villa 8812, Dakar"></div>
+<div style="display: flex; gap: 10px; padding: 12px 14px; border-radius: 10px; background: #EBF0FD; color: #1F48C8; font-size: 14px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none; margin-top: 1px"><circle cx="12" cy="12" r="9"></circle><path d="M12 11v5M12 8h.01"></path></svg><span>Pays : Sénégal · Devise : FCFA (XOF) · Fuseau : Africa/Dakar. Modifiable dans Paramètres.</span></div>
+</fieldset>
+<label style="display: flex; align-items: flex-start; gap: 10px; font-size: 14px; color: #48484A"><input type="checkbox" checked="" style="width: 18px; height: 18px; margin-top: 1px"> J'accepte les <a href="#">conditions d'utilisation</a> et la <a href="#">politique de confidentialité</a>.</label>
+<a href="03-tableau-de-bord.html" class="btn">Créer mon entreprise</a>
+<p style="margin: 0; text-align: center; font-size: 15px; color: #6E6E73">Déjà inscrit ? <a href="01-connexion.html" style="font-weight: 600; text-decoration: none">Se connecter</a></p>
+</form>
+</div>
+</body>
+</html>

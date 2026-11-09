@@ -1,0 +1,4441 @@
+openapi: 3.0.3
+info:
+  title: Kodi API
+  version: 1.0.0
+  description: API de gestion de chantiers (Phase 1). Montants en FCFA entiers. L'organisation est déduite de la session,
+    jamais de l'URL. Aligné sur les routes par TestOpenAPIMatchesRoutes.
+servers:
+- url: /
+security:
+- session: []
+paths:
+  /healthz:
+    get:
+      tags:
+      - Exploitation
+      summary: Vivacité du processus
+      operationId: get_healthz
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+      security: []
+  /readyz:
+    get:
+      tags:
+      - Exploitation
+      summary: Disponibilité (base de données joignable)
+      operationId: get_readyz
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+      security: []
+  /api/v1/auth/signup:
+    post:
+      tags:
+      - Authentification
+      summary: Créer une entreprise et son Owner
+      operationId: post_api_v1_auth_signup
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Signup'
+      responses:
+        '201':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+      security: []
+  /api/v1/auth/login:
+    post:
+      tags:
+      - Authentification
+      summary: Se connecter (erreur identique si le compte existe ou non)
+      operationId: post_api_v1_auth_login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Login'
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+      security: []
+  /api/v1/auth/invitations/{token}/accept:
+    post:
+      tags:
+      - Authentification
+      summary: Accepter une invitation (usage unique, 7 jours)
+      operationId: post_api_v1_auth_invitations_token_accept
+      parameters:
+      - name: token
+        schema:
+          type: string
+        required: true
+        in: path
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AcceptInvitation'
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+      security: []
+  /api/v1/auth/password-reset:
+    post:
+      tags:
+      - Authentification
+      summary: Demander un lien de réinitialisation (réponse identique si le compte existe ou non)
+      description: Traité en arrière-plan. Si le compte est actif et a un email, un lien à usage unique,
+        valable 30 minutes, est envoyé (PWA /nouveau-mot-de-passe#jeton) et remplace le précédent. 3 demandes
+        par compte et par heure, en plus de la limite par adresse IP. Sans email, rien n'est envoyé (pas de
+        prestataire SMS) mais la demande est tracée au journal d'audit.
+      operationId: post_api_v1_auth_password_reset
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PasswordResetRequest'
+      responses:
+        '202':
+          description: Demande acceptée
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  detail:
+                    type: string
+        default:
+          $ref: '#/components/responses/Error'
+      security: []
+  /api/v1/auth/password-reset/confirm:
+    post:
+      tags:
+      - Authentification
+      summary: Choisir un nouveau mot de passe avec le jeton reçu (usage unique)
+      description: Révoque toutes les sessions du compte et lève son éventuel verrouillage. Jeton inconnu,
+        expiré, déjà utilisé ou remplacé → 410 password_reset.invalid.
+      operationId: post_api_v1_auth_password_reset_confirm
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PasswordResetConfirm'
+      responses:
+        '204':
+          description: Mot de passe changé ; les cookies de session sont effacés
+        default:
+          $ref: '#/components/responses/Error'
+      security: []
+  /api/v1/auth/me:
+    get:
+      tags:
+      - Authentification
+      summary: Utilisateur et entreprise courants
+      operationId: get_api_v1_auth_me
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/auth/logout:
+    post:
+      tags:
+      - Authentification
+      summary: Révoquer la session courante
+      operationId: post_api_v1_auth_logout
+      parameters:
+      - $ref: '#/components/parameters/CSRF'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '204':
+          description: Succès
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/auth/sessions:
+    get:
+      tags:
+      - Authentification
+      summary: Lister ses sessions actives
+      operationId: get_api_v1_auth_sessions
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/auth/sessions/{id}:
+    delete:
+      tags:
+      - Authentification
+      summary: Révoquer une de ses sessions
+      operationId: delete_api_v1_auth_sessions_id
+      parameters:
+      - name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+        in: path
+      - $ref: '#/components/parameters/CSRF'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '204':
+          description: Succès
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/organization:
+    get:
+      tags:
+      - Organisation
+      summary: Lire l'entreprise
+      operationId: get_api_v1_organization
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+    patch:
+      tags:
+      - Organisation
+      summary: Modifier l'entreprise (administrateur)
+      operationId: patch_api_v1_organization
+      parameters:
+      - $ref: '#/components/parameters/CSRF'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrganizationUpdate'
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/organization/settings:
+    get:
+      tags:
+      - Organisation
+      summary: Lire les paramètres
+      operationId: get_api_v1_organization_settings
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+    patch:
+      tags:
+      - Organisation
+      summary: Modifier les paramètres (administrateur)
+      operationId: patch_api_v1_organization_settings
+      parameters:
+      - $ref: '#/components/parameters/CSRF'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SettingsUpdate'
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/categories:
+    get:
+      tags:
+      - Organisation
+      summary: Lister les catégories de dépenses
+      operationId: get_api_v1_categories
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+    post:
+      tags:
+      - Organisation
+      summary: Créer une catégorie
+      operationId: post_api_v1_categories
+      parameters:
+      - $ref: '#/components/parameters/CSRF'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Category'
+      responses:
+        '201':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/categories/{id}:
+    patch:
+      tags:
+      - Organisation
+      summary: Modifier une catégorie
+      operationId: patch_api_v1_categories_id
+      parameters:
+      - name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+        in: path
+      - $ref: '#/components/parameters/CSRF'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Category'
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/suppliers:
+    get:
+      tags:
+      - Fournisseurs
+      summary: 'Répertoire des fournisseurs (500 au plus)'
+      operationId: get_api_v1_suppliers
+      parameters:
+      - name: q
+        description: Nom, raison sociale, NINEA, téléphone ou email
+        schema:
+          type: string
+        in: query
+      - name: activity
+        schema:
+          type: string
+          enum: [materials, equipment_rental, subcontracting, transport, services, other]
+        in: query
+      - name: include_archived
+        schema:
+          type: boolean
+        in: query
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+    post:
+      tags:
+      - Fournisseurs
+      summary: 'Créer un fournisseur'
+      description: 'Doublons bloquants (409 supplier.duplicate, même avec confirmation) : même nom sans casse, accents, espaces ni ponctuation ; même NINEA ; même RCCM. Doublons probables (409 supplier.possible_duplicate, sauf confirm_not_duplicate) : même téléphone ou email, sur la fiche ou un contact ; nom très proche une fois la forme juridique retirée. Règles propres à chaque entreprise.'
+      operationId: post_api_v1_suppliers
+      parameters:
+      - $ref: '#/components/parameters/CSRF'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Supplier'
+      responses:
+        '201':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/suppliers/duplicates:
+    post:
+      tags:
+      - Fournisseurs
+      summary: 'Fiches ressemblant à une saisie en cours (règles de doublon)'
+      description: 'POST pour garder la saisie hors de l''URL. Chaque fiche porte ses raisons (same_name, same_ninea, same_rccm, same_phone, same_email, similar_name) et indique si elle bloque la création.'
+      operationId: post_api_v1_suppliers_duplicates
+      parameters:
+      - $ref: '#/components/parameters/CSRF'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SupplierDuplicateQuery'
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/suppliers/{id}:
+    get:
+      tags:
+      - Fournisseurs
+      summary: 'Fiche, contacts et conditions commerciales en vigueur (selon le rôle)'
+      operationId: get_api_v1_suppliers_id
+      parameters:
+      - name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+        in: path
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+    patch:
+      tags:
+      - Fournisseurs
+      summary: 'Modifier la fiche (champ absent inchangé, chaîne vide = effacé)'
+      description: 'Mêmes règles de doublon qu''à la création ; un doublon probable déjà accepté n''est redemandé que si le nom, le téléphone ou l''email changent. 409 supplier.archived sur une fiche archivée.'
+      operationId: patch_api_v1_suppliers_id
+      parameters:
+      - name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+        in: path
+      - $ref: '#/components/parameters/CSRF'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Supplier'
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/suppliers/{id}/archive:
+    post:
+      tags:
+      - Fournisseurs
+      summary: 'Archiver : hors du répertoire et des nouvelles consultations, historique conservé'
+      operationId: post_api_v1_suppliers_id_archive
+      parameters:
+      - name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+        in: path
+      - $ref: '#/components/parameters/CSRF'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/suppliers/{id}/restore:
+    post:
+      tags:
+      - Fournisseurs
+      summary: 'Restaurer un fournisseur archivé'
+      operationId: post_api_v1_suppliers_id_restore
+      parameters:
+      - name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+        in: path
+      - $ref: '#/components/parameters/CSRF'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/suppliers/{id}/terms:
+    get:
+      tags:
+      - Fournisseurs
+      summary: 'Toutes les versions des conditions commerciales, la plus récente d''abord'
+      operationId: get_api_v1_suppliers_id_terms
+      parameters:
+      - name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+        in: path
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+    post:
+      tags:
+      - Fournisseurs
+      summary: 'Enregistrer de nouvelles conditions commerciales (nouvelle version, l''ancienne reste)'
+      operationId: post_api_v1_suppliers_id_terms
+      parameters:
+      - name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+        in: path
+      - $ref: '#/components/parameters/CSRF'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SupplierTerms'
+      responses:
+        '201':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/suppliers/{id}/history:
+    get:
+      tags:
+      - Fournisseurs
+      summary: 'Consultations (demandes de prix) et achats (dépenses), sur les chantiers visibles'
+      operationId: get_api_v1_suppliers_id_history
+      parameters:
+      - name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+        in: path
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/suppliers/{id}/contacts:
+    post:
+      tags:
+      - Fournisseurs
+      summary: 'Ajouter un contact (un nouveau principal remplace le précédent)'
+      operationId: post_api_v1_suppliers_id_contacts
+      parameters:
+      - name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+        in: path
+      - $ref: '#/components/parameters/CSRF'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SupplierContact'
+      responses:
+        '201':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/supplier-contacts/{id}:
+    patch:
+      tags:
+      - Fournisseurs
+      summary: 'Remplacer un contact'
+      operationId: patch_api_v1_supplier_contacts_id
+      parameters:
+      - name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+        in: path
+      - $ref: '#/components/parameters/CSRF'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SupplierContact'
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+    delete:
+      tags:
+      - Fournisseurs
+      summary: 'Retirer un contact'
+      operationId: delete_api_v1_supplier_contacts_id
+      parameters:
+      - name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+        in: path
+      - $ref: '#/components/parameters/CSRF'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '204':
+          description: Succès
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/members:
+    get:
+      tags:
+      - Membres
+      summary: Lister les membres
+      operationId: get_api_v1_members
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/members/{id}:
+    patch:
+      tags:
+      - Membres
+      summary: Attribuer un rôle, suspendre ou réactiver (audité)
+      operationId: patch_api_v1_members_id
+      parameters:
+      - name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+        in: path
+      - $ref: '#/components/parameters/CSRF'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MemberUpdate'
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/invitations:
+    get:
+      tags:
+      - Membres
+      summary: Lister les invitations en attente
+      operationId: get_api_v1_invitations
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+    post:
+      tags:
+      - Membres
+      summary: Inviter un collaborateur ou renvoyer son lien
+      operationId: post_api_v1_invitations
+      parameters:
+      - $ref: '#/components/parameters/CSRF'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Invite'
+      responses:
+        '201':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/invitations/{id}:
+    delete:
+      tags:
+      - Membres
+      summary: Révoquer une invitation
+      operationId: delete_api_v1_invitations_id
+      parameters:
+      - name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+        in: path
+      - $ref: '#/components/parameters/CSRF'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '204':
+          description: Succès
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/audit-logs:
+    get:
+      tags:
+      - Membres
+      summary: Lire le journal d'audit
+      operationId: get_api_v1_audit_logs
+      parameters:
+      - name: action
+        schema:
+          type: string
+        in: query
+      - name: entity_id
+        schema:
+          type: string
+          format: uuid
+        in: query
+      - name: limit
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 200
+          default: 50
+        in: query
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/projects:
+    get:
+      tags:
+      - Chantiers
+      summary: Lister les chantiers visibles
+      operationId: get_api_v1_projects
+      parameters:
+      - name: status
+        schema:
+          type: string
+        in: query
+      - name: manager_id
+        schema:
+          type: string
+          format: uuid
+        in: query
+      - name: q
+        schema:
+          type: string
+        in: query
+      - name: limit
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 200
+          default: 50
+        in: query
+      - name: cursor
+        schema:
+          type: string
+        in: query
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+    post:
+      tags:
+      - Chantiers
+      summary: Créer un chantier
+      operationId: post_api_v1_projects
+      parameters:
+      - $ref: '#/components/parameters/CSRF'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProjectCreate'
+      responses:
+        '201':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/projects/{id}:
+    get:
+      tags:
+      - Chantiers
+      summary: Lire un chantier
+      operationId: get_api_v1_projects_id
+      parameters:
+      - name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+        in: path
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+    patch:
+      tags:
+      - Chantiers
+      summary: Modifier un chantier (If-Match requis)
+      operationId: patch_api_v1_projects_id
+      parameters:
+      - name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+        in: path
+      - name: If-Match
+        description: row_version lue
+        schema:
+          type: integer
+        required: true
+        in: header
+      - $ref: '#/components/parameters/CSRF'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProjectUpdate'
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/projects/{id}/status:
+    post:
+      tags:
+      - Chantiers
+      summary: Changer le statut (machine à états)
+      operationId: post_api_v1_projects_id_status
+      parameters:
+      - name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+        in: path
+      - $ref: '#/components/parameters/CSRF'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProjectTransition'
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/projects/{id}/status-history:
+    get:
+      tags:
+      - Chantiers
+      summary: Historique des statuts
+      operationId: get_api_v1_projects_id_status_history
+      parameters:
+      - name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+        in: path
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/projects/{id}/members:
+    get:
+      tags:
+      - Chantiers
+      summary: Équipe du chantier
+      operationId: get_api_v1_projects_id_members
+      parameters:
+      - name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+        in: path
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/projects/{id}/members/{userId}:
+    put:
+      tags:
+      - Chantiers
+      summary: Affecter un membre
+      operationId: put_api_v1_projects_id_members_userId
+      parameters:
+      - name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+        in: path
+      - name: userId
+        schema:
+          type: string
+          format: uuid
+        required: true
+        in: path
+      - $ref: '#/components/parameters/CSRF'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProjectMember'
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+    delete:
+      tags:
+      - Chantiers
+      summary: Retirer un membre
+      operationId: delete_api_v1_projects_id_members_userId
+      parameters:
+      - name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+        in: path
+      - name: userId
+        schema:
+          type: string
+          format: uuid
+        required: true
+        in: path
+      - $ref: '#/components/parameters/CSRF'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '204':
+          description: Succès
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/projects/{id}/phases:
+    get:
+      tags:
+      - Chantiers
+      summary: Lister les phases
+      operationId: get_api_v1_projects_id_phases
+      parameters:
+      - name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+        in: path
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+    post:
+      tags:
+      - Chantiers
+      summary: Ajouter une phase
+      operationId: post_api_v1_projects_id_phases
+      parameters:
+      - name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+        in: path
+      - $ref: '#/components/parameters/CSRF'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Phase'
+      responses:
+        '201':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/projects/{id}/phases/order:
+    put:
+      tags:
+      - Chantiers
+      summary: Réordonner les phases
+      operationId: put_api_v1_projects_id_phases_order
+      parameters:
+      - name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+        in: path
+      - $ref: '#/components/parameters/CSRF'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PhaseOrder'
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/projects/{id}/phases/{phaseId}:
+    patch:
+      tags:
+      - Chantiers
+      summary: Modifier une phase
+      operationId: patch_api_v1_projects_id_phases_phaseId
+      parameters:
+      - name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+        in: path
+      - name: phaseId
+        schema:
+          type: string
+          format: uuid
+        required: true
+        in: path
+      - $ref: '#/components/parameters/CSRF'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Phase'
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+    delete:
+      tags:
+      - Chantiers
+      summary: Retirer une phase
+      operationId: delete_api_v1_projects_id_phases_phaseId
+      parameters:
+      - name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+        in: path
+      - name: phaseId
+        schema:
+          type: string
+          format: uuid
+        required: true
+        in: path
+      - $ref: '#/components/parameters/CSRF'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '204':
+          description: Succès
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/projects/{id}/budget/versions:
+    get:
+      tags:
+      - Budgets
+      summary: Historique des versions
+      operationId: get_api_v1_projects_id_budget_versions
+      parameters:
+      - name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+        in: path
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+    post:
+      tags:
+      - Budgets
+      summary: Ouvrir le premier budget
+      operationId: post_api_v1_projects_id_budget_versions
+      parameters:
+      - name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+        in: path
+      - $ref: '#/components/parameters/CSRF'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '201':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/budget-versions/compare:
+    get:
+      tags:
+      - Budgets
+      summary: Comparer deux versions (totaux et lignes)
+      operationId: get_api_v1_budget_versions_compare
+      parameters:
+      - name: from
+        schema:
+          type: string
+          format: uuid
+        in: query
+      - name: to
+        schema:
+          type: string
+          format: uuid
+        in: query
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/budget-versions/{id}:
+    get:
+      tags:
+      - Budgets
+      summary: Lire une version et ses lignes
+      operationId: get_api_v1_budget_versions_id
+      parameters:
+      - name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+        in: path
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/budget-versions/{id}/lines:
+    post:
+      tags:
+      - Budgets
+      summary: Ajouter une ligne ; le montant et le total sont calculés
+      operationId: post_api_v1_budget_versions_id_lines
+      parameters:
+      - name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+        in: path
+      - $ref: '#/components/parameters/CSRF'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BudgetLine'
+      responses:
+        '201':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/budget-versions/{id}/publish:
+    post:
+      tags:
+      - Budgets
+      summary: 'Publier : la version devient immuable et fait référence'
+      operationId: post_api_v1_budget_versions_id_publish
+      parameters:
+      - name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+        in: path
+      - $ref: '#/components/parameters/CSRF'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/budget-versions/{id}/discard:
+    post:
+      tags:
+      - Budgets
+      summary: Abandonner un brouillon
+      operationId: post_api_v1_budget_versions_id_discard
+      parameters:
+      - name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+        in: path
+      - $ref: '#/components/parameters/CSRF'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/budget-versions/{id}/revise:
+    post:
+      tags:
+      - Budgets
+      summary: Créer une révision, avec motif
+      operationId: post_api_v1_budget_versions_id_revise
+      parameters:
+      - name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+        in: path
+      - $ref: '#/components/parameters/CSRF'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Revise'
+      responses:
+        '201':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/budget-lines/{id}:
+    patch:
+      tags:
+      - Budgets
+      summary: Modifier une ligne d'un brouillon
+      operationId: patch_api_v1_budget_lines_id
+      parameters:
+      - name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+        in: path
+      - $ref: '#/components/parameters/CSRF'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BudgetLine'
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+    delete:
+      tags:
+      - Budgets
+      summary: Retirer une ligne d'un brouillon
+      operationId: delete_api_v1_budget_lines_id
+      parameters:
+      - name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+        in: path
+      - $ref: '#/components/parameters/CSRF'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/expenses:
+    get:
+      tags:
+      - Dépenses
+      summary: 'Lister (status=pending : file de validation)'
+      operationId: get_api_v1_expenses
+      parameters:
+      - name: project_id
+        schema:
+          type: string
+          format: uuid
+        in: query
+      - name: status
+        schema:
+          type: string
+        in: query
+      - name: payment
+        schema:
+          type: string
+        in: query
+      - name: category_id
+        schema:
+          type: string
+          format: uuid
+        in: query
+      - name: date_from
+        schema:
+          type: string
+          format: date
+          example: '2026-11-03'
+        in: query
+      - name: date_to
+        schema:
+          type: string
+          format: date
+          example: '2026-11-03'
+        in: query
+      - name: q
+        schema:
+          type: string
+        in: query
+      - name: limit
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 200
+          default: 50
+        in: query
+      - name: cursor
+        schema:
+          type: string
+        in: query
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/projects/{id}/expenses:
+    post:
+      tags:
+      - Dépenses
+      summary: Créer un brouillon ; 200 si l'id client existe déjà
+      operationId: post_api_v1_projects_id_expenses
+      parameters:
+      - name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+        in: path
+      - $ref: '#/components/parameters/CSRF'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExpenseCreate'
+      responses:
+        '201':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/expenses/{id}:
+    get:
+      tags:
+      - Dépenses
+      summary: Détail, historique, paiements, justificatifs
+      operationId: get_api_v1_expenses_id
+      parameters:
+      - name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+        in: path
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+    patch:
+      tags:
+      - Dépenses
+      summary: Modifier un brouillon (If-Match requis)
+      operationId: patch_api_v1_expenses_id
+      parameters:
+      - name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+        in: path
+      - name: If-Match
+        description: row_version lue
+        schema:
+          type: integer
+        required: true
+        in: header
+      - $ref: '#/components/parameters/CSRF'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExpenseUpdate'
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/expenses/{id}/submit:
+    post:
+      tags:
+      - Dépenses
+      summary: Soumettre à validation
+      operationId: post_api_v1_expenses_id_submit
+      parameters:
+      - name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+        in: path
+      - $ref: '#/components/parameters/CSRF'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/expenses/{id}/approve:
+    post:
+      tags:
+      - Dépenses
+      summary: Approuver (jamais sa propre dépense)
+      operationId: post_api_v1_expenses_id_approve
+      parameters:
+      - name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+        in: path
+      - $ref: '#/components/parameters/CSRF'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Decision'
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/expenses/{id}/reject:
+    post:
+      tags:
+      - Dépenses
+      summary: Rejeter, avec motif
+      operationId: post_api_v1_expenses_id_reject
+      parameters:
+      - name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+        in: path
+      - $ref: '#/components/parameters/CSRF'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Decision'
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/expenses/{id}/cancel:
+    post:
+      tags:
+      - Dépenses
+      summary: Annuler un brouillon ou une dépense approuvée non payée
+      operationId: post_api_v1_expenses_id_cancel
+      parameters:
+      - name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+        in: path
+      - $ref: '#/components/parameters/CSRF'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Decision'
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/expenses/{id}/back-to-draft:
+    post:
+      tags:
+      - Dépenses
+      summary: Retirer ou reprendre pour correction
+      operationId: post_api_v1_expenses_id_back_to_draft
+      parameters:
+      - name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+        in: path
+      - $ref: '#/components/parameters/CSRF'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/expenses/{id}/payments:
+    post:
+      tags:
+      - Dépenses
+      summary: Enregistrer un paiement partiel
+      operationId: post_api_v1_expenses_id_payments
+      parameters:
+      - name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+        in: path
+      - $ref: '#/components/parameters/CSRF'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Payment'
+      responses:
+        '201':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/dashboard:
+    get:
+      tags:
+      - Finance
+      summary: Indicateurs globaux, à traiter, paiements par mois et santé par chantier
+      operationId: get_api_v1_dashboard
+      parameters:
+      - name: period
+        schema:
+          type: string
+        in: query
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/reports/overview:
+    get:
+      tags:
+      - Finance
+      summary: Synthèse de l'écran Rapports
+      operationId: get_api_v1_reports_overview
+      parameters:
+      - name: project_id
+        schema:
+          type: string
+          format: uuid
+        in: query
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/projects/{id}/progress:
+    post:
+      tags:
+      - Chantiers
+      summary: Déclarer l'avancement du chantier
+      operationId: post_api_v1_projects_id_progress
+      parameters:
+      - name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+        in: path
+      - $ref: '#/components/parameters/CSRF'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Progress'
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/projects/{id}/history:
+    get:
+      tags:
+      - Chantiers
+      summary: Fil d'activité du chantier
+      operationId: get_api_v1_projects_id_history
+      parameters:
+      - name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+        in: path
+      - name: limit
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 200
+          default: 50
+        in: query
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/projects/{id}/attachments:
+    get:
+      tags:
+      - Fichiers
+      summary: Documents du chantier
+      operationId: get_api_v1_projects_id_attachments
+      parameters:
+      - name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+        in: path
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/directory:
+    get:
+      tags:
+      - Membres
+      summary: Annuaire réduit pour désigner un responsable
+      operationId: get_api_v1_directory
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/expenses/counts:
+    get:
+      tags:
+      - Dépenses
+      summary: Compteurs par statut pour la file de dépenses
+      operationId: get_api_v1_expenses_counts
+      parameters:
+      - name: project_id
+        schema:
+          type: string
+          format: uuid
+        in: query
+      - name: category_id
+        schema:
+          type: string
+          format: uuid
+        in: query
+      - name: date_from
+        schema:
+          type: string
+          format: date
+          example: '2026-11-03'
+        in: query
+      - name: date_to
+        schema:
+          type: string
+          format: date
+          example: '2026-11-03'
+        in: query
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/exports/portfolio.pdf:
+    get:
+      tags:
+      - Exports
+      summary: Comparatif de tous les chantiers en PDF
+      operationId: get_api_v1_exports_portfolio_pdf
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/projects/{id}/financials:
+    get:
+      tags:
+      - Finance
+      summary: Santé financière d'un chantier, par catégorie
+      operationId: get_api_v1_projects_id_financials
+      parameters:
+      - name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+        in: path
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/materials:
+    get:
+      tags:
+      - Stock
+      summary: Catalogue des matériaux
+      operationId: get_api_v1_materials
+      parameters:
+      - name: q
+        schema:
+          type: string
+        in: query
+      - name: include_archived
+        schema:
+          type: boolean
+        in: query
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+    post:
+      tags:
+      - Stock
+      summary: Ajouter un matériau
+      operationId: post_api_v1_materials
+      parameters:
+      - $ref: '#/components/parameters/CSRF'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Material'
+      responses:
+        '201':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/materials/{id}:
+    patch:
+      tags:
+      - Stock
+      summary: Modifier un matériau
+      operationId: patch_api_v1_materials_id
+      parameters:
+      - name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+        in: path
+      - $ref: '#/components/parameters/CSRF'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Material'
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/materials/{id}/archive:
+    post:
+      tags:
+      - Stock
+      summary: Archiver un matériau
+      operationId: post_api_v1_materials_id_archive
+      parameters:
+      - name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+        in: path
+      - $ref: '#/components/parameters/CSRF'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/projects/{id}/stock-movements:
+    post:
+      tags:
+      - Stock
+      summary: Créer un mouvement en brouillon
+      operationId: post_api_v1_projects_id_stock_movements
+      parameters:
+      - name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+        in: path
+      - $ref: '#/components/parameters/CSRF'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StockMovement'
+      responses:
+        '201':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/stock-movements/{id}/post:
+    post:
+      tags:
+      - Stock
+      summary: 'Poster : solde mis à jour, mouvement immuable'
+      operationId: post_api_v1_stock_movements_id_post
+      parameters:
+      - name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+        in: path
+      - $ref: '#/components/parameters/CSRF'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/projects/{id}/stock:
+    get:
+      tags:
+      - Stock
+      summary: Soldes par matériau
+      operationId: get_api_v1_projects_id_stock
+      parameters:
+      - name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+        in: path
+      - name: q
+        schema:
+          type: string
+        in: query
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/projects/{id}/stock/history:
+    get:
+      tags:
+      - Stock
+      summary: Historique des mouvements postés
+      operationId: get_api_v1_projects_id_stock_history
+      parameters:
+      - name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+        in: path
+      - name: material_id
+        schema:
+          type: string
+          format: uuid
+        in: query
+      - name: movement_type
+        schema:
+          type: string
+        in: query
+      - name: date_from
+        schema:
+          type: string
+          format: date
+          example: '2026-11-03'
+        in: query
+      - name: date_to
+        schema:
+          type: string
+          format: date
+          example: '2026-11-03'
+        in: query
+      - name: limit
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 200
+          default: 50
+        in: query
+      - name: offset
+        schema:
+          type: integer
+          minimum: 0
+        in: query
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/projects/{id}/stock/reconciliation:
+    get:
+      tags:
+      - Stock
+      summary: Rapprochement solde / journal
+      operationId: get_api_v1_projects_id_stock_reconciliation
+      parameters:
+      - name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+        in: path
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/projects/{id}/tasks:
+    get:
+      tags:
+      - Terrain
+      summary: Lister les tâches
+      operationId: get_api_v1_projects_id_tasks
+      parameters:
+      - name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+        in: path
+      - name: status
+        schema:
+          type: string
+        in: query
+      - name: assignee_id
+        schema:
+          type: string
+          format: uuid
+        in: query
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+    post:
+      tags:
+      - Terrain
+      summary: Créer une tâche ; 200 si l'id client existe déjà
+      operationId: post_api_v1_projects_id_tasks
+      parameters:
+      - name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+        in: path
+      - $ref: '#/components/parameters/CSRF'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskCreate'
+      responses:
+        '201':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/tasks/{id}:
+    get:
+      tags:
+      - Terrain
+      summary: Détail et historique
+      operationId: get_api_v1_tasks_id
+      parameters:
+      - name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+        in: path
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+    patch:
+      tags:
+      - Terrain
+      summary: Modifier une tâche (If-Match requis)
+      operationId: patch_api_v1_tasks_id
+      parameters:
+      - name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+        in: path
+      - name: If-Match
+        description: row_version lue
+        schema:
+          type: integer
+        required: true
+        in: header
+      - $ref: '#/components/parameters/CSRF'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskUpdate'
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/tasks/{id}/progress:
+    post:
+      tags:
+      - Terrain
+      summary: Mettre à jour statut et avancement
+      operationId: post_api_v1_tasks_id_progress
+      parameters:
+      - name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+        in: path
+      - $ref: '#/components/parameters/CSRF'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskProgress'
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/projects/{id}/daily-reports:
+    get:
+      tags:
+      - Terrain
+      summary: Lister les rapports journaliers
+      operationId: get_api_v1_projects_id_daily_reports
+      parameters:
+      - name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+        in: path
+      - name: date_from
+        schema:
+          type: string
+          format: date
+          example: '2026-11-03'
+        in: query
+      - name: date_to
+        schema:
+          type: string
+          format: date
+          example: '2026-11-03'
+        in: query
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/daily-reports/{id}:
+    put:
+      tags:
+      - Terrain
+      summary: Créer ou modifier un brouillon (id client ; If-Match facultatif)
+      operationId: put_api_v1_daily_reports_id
+      parameters:
+      - name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+        in: path
+      - name: If-Match
+        description: row_version lue
+        schema:
+          type: integer
+        required: false
+        in: header
+      - $ref: '#/components/parameters/CSRF'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DailyReport'
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+    get:
+      tags:
+      - Terrain
+      summary: Détail, tâches et photos
+      operationId: get_api_v1_daily_reports_id
+      parameters:
+      - name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+        in: path
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/daily-reports/{id}/submit:
+    post:
+      tags:
+      - Terrain
+      summary: 'Soumettre : le rapport est verrouillé'
+      operationId: post_api_v1_daily_reports_id_submit
+      parameters:
+      - name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+        in: path
+      - $ref: '#/components/parameters/CSRF'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/daily-reports/{id}/reopen:
+    post:
+      tags:
+      - Terrain
+      summary: Rouvrir un rapport soumis (audité)
+      operationId: post_api_v1_daily_reports_id_reopen
+      parameters:
+      - name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+        in: path
+      - $ref: '#/components/parameters/CSRF'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Reopen'
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/attachments/presign:
+    post:
+      tags:
+      - Fichiers
+      summary: 'Préparer un dépôt : URL pré-signée de 5 minutes'
+      operationId: post_api_v1_attachments_presign
+      parameters:
+      - $ref: '#/components/parameters/CSRF'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Presign'
+      responses:
+        '201':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/attachments/{id}/complete:
+    post:
+      tags:
+      - Fichiers
+      summary: 'Confirmer le dépôt : octets réels vérifiés'
+      operationId: post_api_v1_attachments_id_complete
+      parameters:
+      - name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+        in: path
+      - $ref: '#/components/parameters/CSRF'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/attachments/{id}/url:
+    get:
+      tags:
+      - Fichiers
+      summary: Lien de lecture de 10 minutes
+      operationId: get_api_v1_attachments_id_url
+      parameters:
+      - name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+        in: path
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/exports/expenses.xlsx:
+    get:
+      tags:
+      - Exports
+      summary: Exporter les dépenses filtrées en Excel
+      operationId: get_api_v1_exports_expenses_xlsx
+      parameters:
+      - name: project_id
+        schema:
+          type: string
+          format: uuid
+        in: query
+      - name: status
+        schema:
+          type: string
+        in: query
+      - name: category_id
+        schema:
+          type: string
+          format: uuid
+        in: query
+      - name: date_from
+        schema:
+          type: string
+          format: date
+          example: '2026-11-03'
+        in: query
+      - name: date_to
+        schema:
+          type: string
+          format: date
+          example: '2026-11-03'
+        in: query
+      - name: q
+        schema:
+          type: string
+        in: query
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema:
+                type: string
+                format: binary
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/exports/projects/{id}/report.pdf:
+    get:
+      tags:
+      - Exports
+      summary: Rapport financier d'un chantier en PDF
+      operationId: get_api_v1_exports_projects_id_report_pdf
+      parameters:
+      - name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+        in: path
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/rfqs:
+    get:
+      tags:
+      - Demandes de prix
+      summary: 'Lister les demandes de prix visibles (200 au plus, les plus récentes d''abord)'
+      operationId: get_api_v1_rfqs
+      parameters:
+      - name: project_id
+        schema:
+          type: string
+          format: uuid
+        in: query
+      - name: status
+        schema:
+          type: string
+          enum: [draft, published, closed, cancelled]
+        in: query
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/projects/{id}/rfqs:
+    post:
+      tags:
+      - Demandes de prix
+      summary: 'Créer une demande de prix en brouillon (numérotée DP-0001...)'
+      operationId: post_api_v1_projects_id_rfqs
+      parameters:
+      - name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+        in: path
+      - $ref: '#/components/parameters/CSRF'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RFQ'
+      responses:
+        '201':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/rfqs/{id}:
+    get:
+      tags:
+      - Demandes de prix
+      summary: 'Détail : lignes, fournisseurs consultés, toutes les versions d''offre'
+      operationId: get_api_v1_rfqs_id
+      parameters:
+      - name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+        in: path
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+    put:
+      tags:
+      - Demandes de prix
+      summary: 'Remplacer le contenu d''un brouillon (409 rfq.not_draft une fois publiée)'
+      operationId: put_api_v1_rfqs_id
+      parameters:
+      - name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+        in: path
+      - $ref: '#/components/parameters/CSRF'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RFQ'
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/rfqs/{id}/publish:
+    post:
+      tags:
+      - Demandes de prix
+      summary: 'Publier : contenu figé, un lien par fournisseur (envoyé par email s''il en a un)'
+      description: 'Exige au moins une ligne, un fournisseur et une date limite non dépassée. La réponse contient les liens, visibles à ce moment seulement.'
+      operationId: post_api_v1_rfqs_id_publish
+      parameters:
+      - name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+        in: path
+      - $ref: '#/components/parameters/CSRF'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/rfqs/{id}/close:
+    post:
+      tags:
+      - Demandes de prix
+      summary: 'Clôturer : plus aucune offre acceptée'
+      operationId: post_api_v1_rfqs_id_close
+      parameters:
+      - name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+        in: path
+      - $ref: '#/components/parameters/CSRF'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/rfqs/{id}/cancel:
+    post:
+      tags:
+      - Demandes de prix
+      summary: 'Annuler (brouillon ou publiée), avec motif'
+      operationId: post_api_v1_rfqs_id_cancel
+      parameters:
+      - name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+        in: path
+      - $ref: '#/components/parameters/CSRF'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RFQCancel'
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/rfqs/{id}/suppliers/{supplierId}:
+    post:
+      tags:
+      - Demandes de prix
+      summary: 'Consulter un fournisseur de plus (lien émis si la demande est publiée)'
+      operationId: post_api_v1_rfqs_id_suppliers_supplierid
+      parameters:
+      - name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+        in: path
+      - name: supplierId
+        schema:
+          type: string
+          format: uuid
+        required: true
+        in: path
+      - $ref: '#/components/parameters/CSRF'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '201':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/rfqs/{id}/suppliers/{supplierId}/link:
+    post:
+      tags:
+      - Demandes de prix
+      summary: 'Renouveler le lien d''un fournisseur (l''ancien cesse de fonctionner)'
+      operationId: post_api_v1_rfqs_id_suppliers_supplierid_link
+      parameters:
+      - name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+        in: path
+      - name: supplierId
+        schema:
+          type: string
+          format: uuid
+        required: true
+        in: path
+      - $ref: '#/components/parameters/CSRF'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/supplier/rfq:
+    post:
+      tags:
+      - Fournisseurs consultés
+      summary: 'Fournisseur : voir la demande et ses propres offres'
+      description: 'Sans session : le jeton du lien circule dans le corps, jamais dans l''URL. Lien inconnu ou renouvelé → 410 rfq_link.invalid.'
+      operationId: post_api_v1_supplier_rfq
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RFQLinkToken'
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+      security: []
+  /api/v1/supplier/offers:
+    post:
+      tags:
+      - Fournisseurs consultés
+      summary: 'Fournisseur : déposer une offre (nouvelle version à chaque envoi)'
+      description: 'Acceptée tant que la demande est publiée et que la date limite (incluse, heure de Dakar) n''est pas passée, sinon 409 rfq.not_open. Avec un id déjà enregistré, retourne l''offre existante (200).'
+      operationId: post_api_v1_supplier_offers
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OfferSubmit'
+      responses:
+        '201':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+      security: []
+  /api/v1/rfqs/{id}/criteria:
+    put:
+      tags:
+      - Demandes de prix
+      summary: 'Pondérer les critères de comparaison (prix, délai, couverture ; total 100)'
+      description: 'Le détail d''une demande (GET /rfqs/{id}) porte l''évaluation : score de chaque dernière offre sur ces critères, et rang. 409 rfq.already_awarded une fois une offre retenue.'
+      operationId: put_api_v1_rfqs_id_criteria
+      parameters:
+      - name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+        in: path
+      - $ref: '#/components/parameters/CSRF'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RFQCriteria'
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/rfqs/{id}/award:
+    post:
+      tags:
+      - Demandes de prix
+      summary: 'Retenir une offre (consultation close, dernière version du fournisseur)'
+      operationId: post_api_v1_rfqs_id_award
+      parameters:
+      - name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+        in: path
+      - $ref: '#/components/parameters/CSRF'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RFQAward'
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+    delete:
+      tags:
+      - Demandes de prix
+      summary: 'Retirer la sélection (impossible si une commande active en découle)'
+      operationId: delete_api_v1_rfqs_id_award
+      parameters:
+      - name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+        in: path
+      - $ref: '#/components/parameters/CSRF'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/rfqs/{id}/purchase-order:
+    post:
+      tags:
+      - Bons de commande
+      summary: 'Générer le bon de commande en brouillon depuis l''offre retenue (numéroté BC-0001...)'
+      operationId: post_api_v1_rfqs_id_purchase_order
+      parameters:
+      - name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+        in: path
+      - $ref: '#/components/parameters/CSRF'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '201':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/purchase-orders:
+    get:
+      tags:
+      - Bons de commande
+      summary: 'Lister les commandes des chantiers visibles (montant masqué au chef de chantier)'
+      operationId: get_api_v1_purchase_orders
+      parameters:
+      - name: project_id
+        schema:
+          type: string
+          format: uuid
+        in: query
+      - name: supplier_id
+        schema:
+          type: string
+          format: uuid
+        in: query
+      - name: status
+        schema:
+          type: string
+          enum: [draft, submitted, approved, sent, partially_received, received, cancelled]
+        in: query
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/purchase-orders/{id}:
+    get:
+      tags:
+      - Bons de commande
+      summary: 'Commande : lignes (commandé, reçu, restant), réceptions, historique'
+      description: 'Les prix et l''historique détaillé ne sont renvoyés qu''aux rôles qui voient les prix (prices_visible).'
+      operationId: get_api_v1_purchase_orders_id
+      parameters:
+      - name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+        in: path
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+    put:
+      tags:
+      - Bons de commande
+      summary: 'Remplacer le contenu d''un brouillon (lignes, taxes, délais, conditions)'
+      description: 'Une ligne rattachée au catalogue (material_id) garde l''unité de l''article : elle peut alors entrer en stock. Totaux HT, taxes et TTC recalculés par la base.'
+      operationId: put_api_v1_purchase_orders_id
+      parameters:
+      - name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+        in: path
+      - $ref: '#/components/parameters/CSRF'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PurchaseOrderDraft'
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/purchase-orders/{id}/submit:
+    post:
+      tags:
+      - Bons de commande
+      summary: 'Soumettre à l''approbation (brouillon → soumise)'
+      operationId: post_api_v1_purchase_orders_id_submit
+      parameters:
+      - name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+        in: path
+      - $ref: '#/components/parameters/CSRF'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/purchase-orders/{id}/approve:
+    post:
+      tags:
+      - Bons de commande
+      summary: 'Approuver (soumise → approuvée), jamais par l''auteur de la commande'
+      operationId: post_api_v1_purchase_orders_id_approve
+      parameters:
+      - name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+        in: path
+      - $ref: '#/components/parameters/CSRF'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Comment'
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/purchase-orders/{id}/return:
+    post:
+      tags:
+      - Bons de commande
+      summary: 'Renvoyer en brouillon, avec motif (soumise → brouillon)'
+      operationId: post_api_v1_purchase_orders_id_return
+      parameters:
+      - name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+        in: path
+      - $ref: '#/components/parameters/CSRF'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Comment'
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/purchase-orders/{id}/send:
+    post:
+      tags:
+      - Bons de commande
+      summary: 'Envoyer au fournisseur (approuvée → envoyée), par email s''il en a un'
+      operationId: post_api_v1_purchase_orders_id_send
+      parameters:
+      - name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+        in: path
+      - $ref: '#/components/parameters/CSRF'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/purchase-orders/{id}/cancel:
+    post:
+      tags:
+      - Bons de commande
+      summary: 'Annuler, avec motif, tant que rien n''est reçu'
+      operationId: post_api_v1_purchase_orders_id_cancel
+      parameters:
+      - name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+        in: path
+      - $ref: '#/components/parameters/CSRF'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Comment'
+      responses:
+        '200':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/purchase-orders/{id}/receipts:
+    post:
+      tags:
+      - Bons de commande
+      summary: 'Enregistrer une réception, partielle ou complète'
+      description: 'Commande envoyée ou partiellement reçue. Quantités jamais au-delà du restant (422 receipt.over_quantity). Un même identifiant renvoyé retourne la réception existante (200) ; un même bon de livraison sur la commande est refusé (409 receipt.duplicate). to_stock : les lignes rattachées au catalogue entrent en stock sur le chantier, par un mouvement posté.'
+      operationId: post_api_v1_purchase_orders_id_receipts
+      parameters:
+      - name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+        in: path
+      - $ref: '#/components/parameters/CSRF'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Receipt'
+      responses:
+        '201':
+          description: Succès
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+components:
+  securitySchemes:
+    session:
+      type: apiKey
+      name: cf_session
+      in: cookie
+  parameters:
+    CSRF:
+      name: X-CSRF-Token
+      description: Copie du cookie cf_csrf
+      schema:
+        type: string
+      required: true
+      in: header
+    IdempotencyKey:
+      name: Idempotency-Key
+      description: 'UUID client : un rejeu retourne la réponse mémorisée'
+      schema:
+        type: string
+        format: uuid
+      in: header
+  responses:
+    Error:
+      description: Erreur
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+  schemas:
+    Problem:
+      type: object
+      description: Erreur RFC 9457
+      required:
+      - status
+      - code
+      - detail
+      properties:
+        type:
+          type: string
+        title:
+          type: string
+        status:
+          type: integer
+        code:
+          type: string
+          example: expense.not_pending
+        detail:
+          type: string
+          description: Message en français, affichable
+        fields:
+          type: object
+          nullable: true
+          additionalProperties:
+            type: string
+          description: Erreurs par champ de formulaire
+        request_id:
+          type: string
+    Signup:
+      type: object
+      additionalProperties: false
+      properties:
+        organization_name:
+          type: string
+        slug:
+          type: string
+        full_name:
+          type: string
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+          example: '+221771234567'
+        password:
+          type: string
+          minLength: 10
+        remember:
+          type: boolean
+        company_phone:
+          type: string
+        activity_type:
+          type: string
+          enum:
+          - villas
+          - gros_oeuvre
+          - second_oeuvre
+          - renovation
+          - general
+        city:
+          type: string
+        address:
+          type: string
+      required:
+      - organization_name
+      - full_name
+      - password
+    Login:
+      type: object
+      additionalProperties: false
+      properties:
+        login:
+          type: string
+          description: Email ou téléphone
+        password:
+          type: string
+        remember:
+          type: boolean
+      required:
+      - login
+      - password
+    AcceptInvitation:
+      type: object
+      additionalProperties: false
+      properties:
+        password:
+          type: string
+          minLength: 10
+        full_name:
+          type: string
+      required:
+      - password
+    PasswordResetRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        login:
+          type: string
+          description: Email ou téléphone
+      required:
+      - login
+    PasswordResetConfirm:
+      type: object
+      additionalProperties: false
+      properties:
+        token:
+          type: string
+          description: Jeton reçu dans le lien
+        password:
+          type: string
+          minLength: 10
+      required:
+      - token
+      - password
+    OrganizationUpdate:
+      type: object
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+        slug:
+          type: string
+        legal_name:
+          type: string
+        phone:
+          type: string
+        email:
+          type: string
+        address:
+          type: string
+        city:
+          type: string
+        activity_type:
+          type: string
+          enum:
+          - villas
+          - gros_oeuvre
+          - second_oeuvre
+          - renovation
+          - general
+    SettingsUpdate:
+      type: object
+      additionalProperties: false
+      properties:
+        budget_alert_thresholds:
+          type: array
+          items:
+            type: integer
+            minimum: 1
+            maximum: 200
+      required:
+      - budget_alert_thresholds
+    Category:
+      type: object
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+        is_active:
+          type: boolean
+        sort_order:
+          type: integer
+    Supplier:
+      type: object
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+          minLength: 2
+          maxLength: 160
+        phone:
+          type: string
+          description: Normalisé au format international (77 123 45 67 → +221771234567)
+        email:
+          type: string
+          format: email
+          description: Les liens de demande de prix y sont envoyés
+        legal_name:
+          type: string
+          description: Raison sociale
+        legal_form:
+          type: string
+          enum: [ei, suarl, sarl, sa, sas, gie, other]
+        ninea:
+          type: string
+          example: 004567891 2G3
+        rccm:
+          type: string
+          example: SN-DKR-2015-B-12345
+        address:
+          type: string
+        city:
+          type: string
+        activities:
+          type: array
+          items:
+            type: string
+            enum: [materials, equipment_rental, subcontracting, transport, services, other]
+        notes:
+          type: string
+        confirm_not_duplicate:
+          type: boolean
+          description: Passe outre un doublon probable, jamais un doublon bloquant
+    SupplierDuplicateQuery:
+      allOf:
+      - $ref: '#/components/schemas/Supplier'
+      - type: object
+        properties:
+          exclude_id:
+            type: string
+            format: uuid
+    SupplierContact:
+      type: object
+      additionalProperties: false
+      properties:
+        full_name:
+          type: string
+        job_title:
+          type: string
+        phone:
+          type: string
+        email:
+          type: string
+          format: email
+        is_primary:
+          type: boolean
+        notes:
+          type: string
+      required:
+      - full_name
+      description: Un téléphone ou un email est obligatoire
+    SupplierTerms:
+      type: object
+      additionalProperties: false
+      description: Au moins une condition. Les versions passées ne changent jamais.
+      properties:
+        effective_from:
+          type: string
+          format: date
+          description: Par défaut aujourd'hui
+        payment_method:
+          type: string
+          enum: [cash, wave, orange_money, free_money, bank_transfer, cheque, other]
+        payment_delay_days:
+          type: integer
+          minimum: 0
+          maximum: 365
+        advance_pct:
+          type: integer
+          minimum: 0
+          maximum: 100
+        discount_pct:
+          type: string
+          example: '2.5'
+        delivery_days:
+          type: integer
+          minimum: 0
+          maximum: 365
+        delivery_included:
+          type: boolean
+        minimum_order_amount:
+          type: integer
+          format: int64
+          description: FCFA
+        credit_limit:
+          type: integer
+          format: int64
+          description: Encours autorisé, FCFA
+        notes:
+          type: string
+    RFQ:
+      type: object
+      additionalProperties: false
+      properties:
+        title:
+          type: string
+          minLength: 2
+          maxLength: 160
+        notes:
+          type: string
+          maxLength: 4000
+        response_deadline:
+          type: string
+          format: date
+          description: Date limite de réponse, incluse (heure de Dakar) ; obligatoire pour publier
+        delivery_date:
+          type: string
+          format: date
+        items:
+          type: array
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/RFQItem'
+        supplier_ids:
+          type: array
+          maxItems: 50
+          items:
+            type: string
+            format: uuid
+      required:
+      - title
+    RFQItem:
+      type: object
+      additionalProperties: false
+      properties:
+        kind:
+          type: string
+          enum: [material, service]
+        material_id:
+          type: string
+          format: uuid
+          description: Article du catalogue (matériau seulement)
+        label:
+          type: string
+          minLength: 2
+          maxLength: 200
+        quantity:
+          type: string
+          example: '12.5'
+          description: Décimal positif, 3 décimales au plus
+        unit:
+          type: string
+          enum: [sac, barre, m3, m2, ml, unite, kg, tonne, litre, rouleau, boite, forfait, jour, heure]
+        specifications:
+          type: string
+          maxLength: 2000
+        needed_by:
+          type: string
+          format: date
+      required:
+      - kind
+      - label
+      - quantity
+      - unit
+    RFQCancel:
+      type: object
+      additionalProperties: false
+      properties:
+        reason:
+          type: string
+          maxLength: 500
+      required:
+      - reason
+    RFQLinkToken:
+      type: object
+      additionalProperties: false
+      properties:
+        token:
+          type: string
+          description: Jeton du lien reçu (partie après /offre#)
+      required:
+      - token
+    OfferSubmit:
+      type: object
+      additionalProperties: false
+      properties:
+        token:
+          type: string
+        id:
+          type: string
+          format: uuid
+          description: Généré par la page pour qu'un double envoi n'ait qu'un effet
+        lines:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            additionalProperties: false
+            properties:
+              rfq_item_id:
+                type: string
+                format: uuid
+              unit_price:
+                type: integer
+                format: int64
+                minimum: 0
+                description: FCFA, entier
+              comment:
+                type: string
+                maxLength: 500
+            required:
+            - rfq_item_id
+            - unit_price
+        valid_until:
+          type: string
+          format: date
+        delivery_days:
+          type: integer
+          minimum: 0
+          maximum: 365
+        payment_terms:
+          type: string
+          maxLength: 500
+        notes:
+          type: string
+          maxLength: 2000
+        contact_name:
+          type: string
+          maxLength: 160
+      required:
+      - token
+      - lines
+    RFQCriteria:
+      type: object
+      additionalProperties: false
+      properties:
+        weight_price:
+          type: integer
+          minimum: 0
+          maximum: 100
+        weight_delivery:
+          type: integer
+          minimum: 0
+          maximum: 100
+        weight_coverage:
+          type: integer
+          minimum: 0
+          maximum: 100
+      required: [weight_price, weight_delivery, weight_coverage]
+    RFQAward:
+      type: object
+      additionalProperties: false
+      properties:
+        offer_id:
+          type: string
+          format: uuid
+        reason:
+          type: string
+          maxLength: 1000
+      required: [offer_id]
+    Comment:
+      type: object
+      additionalProperties: false
+      properties:
+        comment:
+          type: string
+          maxLength: 1000
+    PurchaseOrderDraft:
+      type: object
+      additionalProperties: false
+      properties:
+        expected_delivery_date:
+          type: string
+          format: date
+        delivery_address:
+          type: string
+        payment_terms:
+          type: string
+        notes:
+          type: string
+        lines:
+          type: array
+          minItems: 1
+          maxItems: 200
+          items:
+            type: object
+            additionalProperties: false
+            properties:
+              rfq_item_id:
+                type: string
+                format: uuid
+              material_id:
+                type: string
+                format: uuid
+              label:
+                type: string
+              unit:
+                type: string
+              quantity:
+                type: string
+                example: '100'
+              unit_price:
+                type: integer
+                format: int64
+              tax_rate:
+                type: string
+                example: '18'
+              comment:
+                type: string
+            required: [label, unit, quantity, unit_price, tax_rate]
+      required: [lines]
+    Receipt:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Généré par l'appareil, pour qu'un renvoi n'ait qu'un effet
+        received_on:
+          type: string
+          format: date
+        delivery_note_ref:
+          type: string
+          maxLength: 60
+          description: Numéro du bon de livraison, unique par commande
+        notes:
+          type: string
+        to_stock:
+          type: boolean
+        lines:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            additionalProperties: false
+            properties:
+              line_id:
+                type: string
+                format: uuid
+              quantity:
+                type: string
+                example: '40'
+            required: [line_id, quantity]
+      required: [received_on, lines]
+    Invite:
+      type: object
+      additionalProperties: false
+      properties:
+        full_name:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        role:
+          $ref: '#/components/schemas/Role'
+        project_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+          description: Appliqués à l'acceptation
+      required:
+      - full_name
+      - role
+    Role:
+      type: string
+      enum:
+      - owner
+      - manager
+      - accountant
+      - site_worker
+      - viewer
+    MemberUpdate:
+      type: object
+      additionalProperties: false
+      properties:
+        role:
+          $ref: '#/components/schemas/Role'
+        status:
+          type: string
+          enum:
+          - active
+          - suspended
+    ProjectCreate:
+      type: object
+      additionalProperties: false
+      properties:
+        reference:
+          type: string
+        name:
+          type: string
+        client_name:
+          type: string
+        address:
+          type: string
+        city:
+          type: string
+        description:
+          type: string
+        status:
+          type: string
+          enum:
+          - draft
+          - planned
+          - in_progress
+        start_date:
+          type: string
+          format: date
+          example: '2026-11-03'
+        planned_end_date:
+          type: string
+          format: date
+          example: '2026-11-03'
+        manager_id:
+          type: string
+          format: uuid
+      required:
+      - reference
+      - name
+      - client_name
+      - address
+      - start_date
+    ProjectUpdate:
+      type: object
+      additionalProperties: false
+      properties:
+        reference:
+          type: string
+        name:
+          type: string
+        client_name:
+          type: string
+        address:
+          type: string
+        city:
+          type: string
+        description:
+          type: string
+        start_date:
+          type: string
+          format: date
+          example: '2026-11-03'
+        planned_end_date:
+          type: string
+          format: date
+          example: '2026-11-03'
+        manager_id:
+          type: string
+          format: uuid
+    ProjectTransition:
+      type: object
+      additionalProperties: false
+      properties:
+        status:
+          type: string
+          enum:
+          - draft
+          - planned
+          - in_progress
+          - completed
+          - archived
+        comment:
+          type: string
+      required:
+      - status
+    ProjectMember:
+      type: object
+      additionalProperties: false
+      properties:
+        can_approve:
+          type: boolean
+        approval_limit:
+          type: integer
+          format: int64
+    Phase:
+      type: object
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+        status:
+          type: string
+          enum:
+          - pending
+          - in_progress
+          - done
+        planned_start:
+          type: string
+          format: date
+          example: '2026-11-03'
+        planned_end:
+          type: string
+          format: date
+          example: '2026-11-03'
+    PhaseOrder:
+      type: object
+      additionalProperties: false
+      properties:
+        phase_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+      required:
+      - phase_ids
+    BudgetLine:
+      type: object
+      additionalProperties: false
+      properties:
+        category_id:
+          type: string
+          format: uuid
+        label:
+          type: string
+        quantity:
+          type: string
+          pattern: ^-?\d+(\.\d{1,3})?$
+          description: Décimal à 3 chiffres au plus
+          example: '10.5'
+        unit:
+          type: string
+        unit_price:
+          type: integer
+          format: int64
+          description: Prix unitaire en FCFA entiers
+        position:
+          type: integer
+    Revise:
+      type: object
+      additionalProperties: false
+      properties:
+        reason:
+          type: string
+          minLength: 3
+      required:
+      - reason
+    ExpenseCreate:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: 'UUIDv7 client : rend le renvoi idempotent'
+        category_id:
+          type: string
+          format: uuid
+        supplier_id:
+          type: string
+          format: uuid
+        description:
+          type: string
+        amount:
+          type: integer
+          format: int64
+          minimum: 1
+          description: Montant en FCFA entiers
+        expense_date:
+          type: string
+          format: date
+          example: '2026-11-03'
+        supplier_name:
+          type: string
+          description: Crée le fournisseur s'il n'existe pas
+        comment:
+          type: string
+        declared_paid_on:
+          type: string
+          format: date
+          example: '2026-11-03'
+        declared_payment_method:
+          type: string
+          enum:
+          - cash
+          - wave
+          - orange_money
+          - free_money
+          - bank_transfer
+          - cheque
+          - other
+          description: 'Déclaration : le paiement reste à enregistrer par Finance'
+      required:
+      - category_id
+      - description
+      - amount
+      - expense_date
+    ExpenseUpdate:
+      type: object
+      additionalProperties: false
+      properties:
+        category_id:
+          type: string
+          format: uuid
+        supplier_id:
+          type: string
+          format: uuid
+        description:
+          type: string
+        amount:
+          type: integer
+          format: int64
+          minimum: 1
+        expense_date:
+          type: string
+          format: date
+          example: '2026-11-03'
+    Decision:
+      type: object
+      additionalProperties: false
+      properties:
+        comment:
+          type: string
+          description: Obligatoire pour un rejet
+    Payment:
+      type: object
+      additionalProperties: false
+      properties:
+        amount:
+          type: integer
+          format: int64
+          minimum: 1
+        paid_on:
+          type: string
+          format: date
+          example: '2026-11-03'
+        method:
+          type: string
+          enum:
+          - cash
+          - wave
+          - orange_money
+          - free_money
+          - bank_transfer
+          - cheque
+          - other
+        reference:
+          type: string
+      required:
+      - amount
+      - paid_on
+      - method
+    Material:
+      type: object
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+        unit:
+          type: string
+          enum:
+          - sac
+          - barre
+          - m3
+          - m2
+          - ml
+          - unite
+          - kg
+          - tonne
+          - litre
+          - rouleau
+          - boite
+        sku:
+          type: string
+        low_stock_threshold:
+          type: string
+          pattern: ^-?\d+(\.\d{1,3})?$
+          description: Décimal à 3 chiffres au plus
+          example: '10.5'
+    StockMovement:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          format: uuid
+        movement_type:
+          type: string
+          enum:
+          - in
+          - out
+          - adjustment
+        occurred_on:
+          type: string
+          format: date
+          example: '2026-11-03'
+        reason:
+          type: string
+          description: Obligatoire pour un ajustement
+        items:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            additionalProperties: false
+            properties:
+              material_id:
+                type: string
+                format: uuid
+              quantity:
+                type: string
+                pattern: ^-?\d+(\.\d{1,3})?$
+                description: Décimal à 3 chiffres au plus
+                example: '10.5'
+            required:
+            - material_id
+            - quantity
+      required:
+      - movement_type
+      - occurred_on
+      - items
+    TaskCreate:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        description:
+          type: string
+        priority:
+          type: string
+          enum:
+          - low
+          - medium
+          - high
+          - urgent
+        due_date:
+          type: string
+          format: date
+          example: '2026-11-03'
+        assignee_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+      required:
+      - title
+    TaskUpdate:
+      type: object
+      additionalProperties: false
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        priority:
+          type: string
+          enum:
+          - low
+          - medium
+          - high
+          - urgent
+        due_date:
+          type: string
+          format: date
+          example: '2026-11-03'
+        assignee_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+    TaskProgress:
+      type: object
+      additionalProperties: false
+      properties:
+        status:
+          type: string
+          enum:
+          - todo
+          - in_progress
+          - blocked
+          - done
+          - cancelled
+        progress_pct:
+          type: integer
+          minimum: 0
+          maximum: 100
+    DailyReport:
+      type: object
+      additionalProperties: false
+      properties:
+        project_id:
+          type: string
+          format: uuid
+        report_date:
+          type: string
+          format: date
+          example: '2026-11-03'
+        team_label:
+          type: string
+        work_done:
+          type: string
+        workforce_count:
+          type: integer
+          minimum: 0
+        issues:
+          type: string
+        weather:
+          type: string
+          enum:
+          - sunny
+          - cloudy
+          - rain
+          - strong_wind
+        tasks:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            properties:
+              task_id:
+                type: string
+                format: uuid
+              done_that_day:
+                type: boolean
+            required:
+            - task_id
+      required:
+      - project_id
+      - report_date
+      - work_done
+    Reopen:
+      type: object
+      additionalProperties: false
+      properties:
+        reason:
+          type: string
+          minLength: 3
+      required:
+      - reason
+    Progress:
+      type: object
+      additionalProperties: false
+      properties:
+        progress_pct:
+          type: integer
+          minimum: 0
+          maximum: 100
+      required:
+      - progress_pct
+    Presign:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          format: uuid
+        project_id:
+          type: string
+          format: uuid
+        expense_id:
+          type: string
+          format: uuid
+        daily_report_id:
+          type: string
+          format: uuid
+        kind:
+          type: string
+          enum:
+          - receipt
+          - site_photo
+          - document
+        mime_type:
+          type: string
+          enum:
+          - image/jpeg
+          - image/png
+          - image/webp
+          - application/pdf
+        size_bytes:
+          type: integer
+          format: int64
+          minimum: 1
+          maximum: 26214400
+        original_name:
+          type: string
+      required:
+      - id
+      - kind
+      - mime_type
+      - size_bytes

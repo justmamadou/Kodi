@@ -1,0 +1,67 @@
+version: "2"
+linters:
+  enable:
+    - bodyclose
+    - depguard
+    - errorlint
+    - gosec
+    - rowserrcheck
+    - unconvert
+  settings:
+    depguard:
+      rules:
+        # Frontières du monolithe modulaire : un module métier passe par rbac, audit et les requêtes
+        # générées, et ne dépend jamais directement d'un autre module (seul reporting agrège).
+        modules:
+          files:
+            - "**/internal/identity/**"
+            - "**/internal/organization/**"
+            - "**/internal/project/**"
+            - "**/internal/budget/**"
+            - "**/internal/expense/**"
+            - "**/internal/finance/**"
+            - "**/internal/inventory/**"
+            - "**/internal/fieldops/**"
+            - "**/internal/files/**"
+            - "**/internal/procurement/**"
+            - "**/internal/supplier/**"
+          deny:
+            - pkg: github.com/justmamadou/Kodi/internal/project
+              desc: "un module ne dépend pas d'un autre module"
+            - pkg: github.com/justmamadou/Kodi/internal/budget
+              desc: "un module ne dépend pas d'un autre module"
+            - pkg: github.com/justmamadou/Kodi/internal/expense
+              desc: "un module ne dépend pas d'un autre module"
+            - pkg: github.com/justmamadou/Kodi/internal/finance
+              desc: "un module ne dépend pas d'un autre module"
+            - pkg: github.com/justmamadou/Kodi/internal/inventory
+              desc: "un module ne dépend pas d'un autre module"
+            - pkg: github.com/justmamadou/Kodi/internal/fieldops
+              desc: "un module ne dépend pas d'un autre module"
+            - pkg: github.com/justmamadou/Kodi/internal/files
+              desc: "un module ne dépend pas d'un autre module"
+            - pkg: github.com/justmamadou/Kodi/internal/procurement
+              desc: "un module ne dépend pas d'un autre module"
+            - pkg: github.com/justmamadou/Kodi/internal/supplier
+              desc: "un module ne dépend pas d'un autre module"
+        # Le transport et la base ne fuient pas dans le contrôle d'accès.
+        rbac:
+          files:
+            - "**/internal/rbac/**"
+          deny:
+            - pkg: net/http
+              desc: "rbac ne connaît pas HTTP"
+    gosec:
+      excludes:
+        - G104 # couvert par errcheck
+  exclusions:
+    generated: strict
+    rules:
+      - path: _test\.go
+        linters:
+          - gosec
+          - errcheck
+formatters:
+  enable:
+    - gofmt
+    - goimports

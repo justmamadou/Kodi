@@ -1,0 +1,63 @@
+version: "2"
+sql:
+  - engine: "postgresql"
+    schema: "migrations"
+    queries: "queries"
+    gen:
+      go:
+        package: "db"
+        out: "../internal/platform/db"
+        sql_package: "pgx/v5"
+        emit_json_tags: true
+        emit_pointers_for_null_types: true
+        emit_empty_slices: true
+        overrides:
+          - db_type: "uuid"
+            go_type: "github.com/google/uuid.UUID"
+          - db_type: "uuid"
+            nullable: true
+            go_type: {import: "github.com/google/uuid", type: "UUID", pointer: true}
+          - db_type: "timestamptz"
+            go_type: "time.Time"
+          - db_type: "timestamptz"
+            nullable: true
+            go_type: {import: "time", type: "Time", pointer: true}
+          - db_type: "date"
+            go_type: {import: "github.com/justmamadou/Kodi/internal/platform/civil", type: "Date"}
+          - db_type: "date"
+            nullable: true
+            go_type: {import: "github.com/justmamadou/Kodi/internal/platform/civil", type: "Date", pointer: true}
+          - db_type: "pg_catalog.numeric"
+            go_type: {import: "github.com/shopspring/decimal", type: "Decimal"}
+          - db_type: "pg_catalog.numeric"
+            nullable: true
+            go_type: {import: "github.com/shopspring/decimal", type: "Decimal", pointer: true}
+          - db_type: "jsonb"
+            go_type: {import: "encoding/json", type: "RawMessage"}
+          - db_type: "jsonb"
+            nullable: true
+            go_type: {import: "encoding/json", type: "RawMessage"}
+          - db_type: "citext"
+            go_type: "string"
+          - db_type: "citext"
+            nullable: true
+            go_type: {type: "string", pointer: true}
+          # Les secrets ne doivent jamais pouvoir être sérialisés en JSON.
+          - column: "users.password_hash"
+            go_struct_tag: 'json:"-"'
+          - column: "users.failed_login_count"
+            go_struct_tag: 'json:"-"'
+          - column: "users.locked_until"
+            go_struct_tag: 'json:"-"'
+          - column: "sessions.token_hash"
+            go_struct_tag: 'json:"-"'
+          - column: "invitations.token_hash"
+            go_struct_tag: 'json:"-"'
+          - column: "password_resets.token_hash"
+            go_struct_tag: 'json:"-"'
+          - column: "rfq_suppliers.token_hash"
+            go_struct_tag: 'json:"-"'
+          - column: "rfq_offers.ip"
+            go_struct_tag: 'json:"-"'
+          - column: "suppliers.name_key"
+            go_struct_tag: 'json:"-"'
